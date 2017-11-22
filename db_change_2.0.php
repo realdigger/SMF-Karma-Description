@@ -45,6 +45,11 @@ if ($smcFunc['db_fetch_assoc']($result) == 0) {
 
 $smcFunc['db_remove_index']('{db_prefix}log_karma', 'primary');
 
+// Additional indexes
+$smcFunc['db_add_index']('{db_prefix}log_karma', array('columns' => array('id_target')));
+$smcFunc['db_add_index']('{db_prefix}log_karma', array('columns' => array('id_executor')));
+// TODO: $smcFunc['db_add_index']('{db_prefix}log_karma', array('columns' => array('action', 'link')));
+
 $smcFunc['db_insert']('ignore',
     '{db_prefix}settings',
     array('variable' => 'string', 'value' => 'string'),
