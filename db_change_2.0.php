@@ -22,25 +22,24 @@ if ((SMF == 'SSI') && !$user_info['is_admin']) {
 
 db_extend('packages');
 
-// TODO: remove deprecated IGNORE
 $result = $smcFunc['db_query']('', "SHOW COLUMNS FROM {db_prefix}log_karma LIKE 'description'");
 if ($smcFunc['db_fetch_assoc']($result) == 0) {
     $smcFunc['db_query']('', "
-		ALTER IGNORE TABLE {db_prefix}log_karma
+		ALTER TABLE {db_prefix}log_karma
 		ADD	description text NOT NULL AFTER action");
 }
 
 $result = $smcFunc['db_query']('', "SHOW COLUMNS FROM {db_prefix}log_karma LIKE 'link'");
 if ($smcFunc['db_fetch_assoc']($result) == 0) {
     $smcFunc['db_query']('', "
-		ALTER IGNORE TABLE {db_prefix}log_karma
+		ALTER TABLE {db_prefix}log_karma
 		ADD	link text NOT NULL AFTER description");
 }
 
 $result = $smcFunc['db_query']('', "SHOW COLUMNS FROM {db_prefix}log_karma LIKE 'is_read'");
 if ($smcFunc['db_fetch_assoc']($result) == 0) {
     $smcFunc['db_query']('', "
-		ALTER IGNORE TABLE {db_prefix}log_karma
+		ALTER TABLE {db_prefix}log_karma
 		ADD	is_read smallint(1) NOT NULL AFTER link");
 }
 
