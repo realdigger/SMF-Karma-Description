@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<!DOCTYPE package-info SYSTEM "http://www.simplemachines.org/xml/package-info">
+<package-info xmlns="http://www.simplemachines.org/xml/package-info" xmlns:smf="http://www.simplemachines.org/">
+        <id>IvanV.PetrovichAkaGrek:KarmaDescriptionMod</id>
+          <name>Karma Description Mod</name>
+          <version>2.7.1</version>
+          <type>modification</type>	
+	<install for="2.0">
+                <readme type="inline">Karma Description Mod. Don't forget to BACKUP, please.</readme>
+                <code>db_change_2.0.php</code>
+		<modification>Karma_Description_Mod_smf2.0_1.xml</modification>
+		<modification>Karma_Description_Mod_smf2.0_2.xml</modification>
+                <modification type="file" format="xml">language_russian_cp1251.xml</modification>
+		<modification type="file" format="xml">language_russian_utf8.xml</modification>
+		<modification type="file" format="xml">language_english_utf8.xml</modification>
+		<modification type="file" format="xml">language_english.xml</modification>
+		<require-file name="kdm_up.png" destination="$themedir/images" />
+		<require-file name="kdm_down.png" destination="$themedir/images" />
+                <require-file name="Viewkarma_smf2.php" destination="$sourcedir" />
+                <require-file name="Viewkarma.template.php" destination="$themedir" />
+                <require-file name="Viewkarmamessage.template.php" destination="$themedir" />
+                <require-file name="DescriptionKarma.template.php" destination="$themedir" />
+        </install>
+        <uninstall for="2.0">
+                <readme type="inline">Thank you for using Karma Description Mod.</readme>
+                <modification reverse="true">Karma_Description_Mod_smf2.0_1.xml</modification>
+                <modification reverse="true">Karma_Description_Mod_smf2.0_2.xml</modification>
+                <modification reverse="true">language_russian_cp1251.xml</modification>
+		<modification reverse="true">language_russian_utf8.xml</modification>
+		<modification reverse="true">language_english_utf8.xml</modification>
+		<modification reverse="true">language_english.xml</modification>
+		<remove-file name="$themedir/images/kdm_up.png" />
+		<remove-file name="$themedir/images/kdm_down.png" />		
+		<remove-file name="$themedir/Viewkarma.template.php" />
+		<remove-file name="$themedir/Viewkarmamessage.template.php" />
+                <remove-file name="$themedir/DescriptionKarma.template.php" />
+                <remove-file name="$sourcedir/Viewkarma_smf2.php" />
+	</uninstall>
+</package-info>

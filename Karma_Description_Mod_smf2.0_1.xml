@@ -1,0 +1,618 @@
+<?xml version="1.0"?>
+<!DOCTYPE modification SYSTEM "http://www.simplemachines.org/xml/modification">
+<modification xmlns="http://www.simplemachines.org/xml/modification" xmlns:smf="http://www.simplemachines.org/">
+	<id>IvanV.PetrovichAkaGrek:KarmaDescriptionMod</id>
+	<version>2.7.1</version>
+
+<file name="$sourcedir/Karma.php">
+
+		<operation>
+			<search position="after"><![CDATA[// If you're a guest or can't do this, blow you off...
+]]></search>
+			<add><![CDATA[if (!empty($modSettings['karmasurv']))
+                ModKarm();
+]]></add>
+		</operation>
+
+		<operation>
+			<search position="replace"><![CDATA[global $modSettings, $txt, $user_info, $topic, $smcFunc, $context;
+]]></search>
+			<add><![CDATA[global $db_prefix, $modSettings, $txt, $user_info, $topic, $smcFunc, $context, $scripturl;
+]]></add>
+		</operation>
+
+            <operation>
+			<search position="before"><![CDATA[// Applauding or smiting?
+	$dir = $_REQUEST['sa'] != 'applaud' ? -1 : 1;
+]]></search>
+			<add><![CDATA[
+			// Users can change karma to only topic starter if you check this function
+        if (!empty($modSettings['karmatopicstarter']))
+        {
+         $request = $smcFunc['db_query']('', '
+                        SELECT id_member_started
+                        FROM {db_prefix}topics
+                        WHERE id_topic = {int:id_topic}
+                        LIMIT 1',
+                        array(
+					'id_topic' => $_REQUEST['topic'],
+			)
+        );
+
+        $row = $smcFunc['db_fetch_row']($request);
+                $smcFunc['db_free_result']($request);
+        if ($_REQUEST['uid'] != $row[0] && $user_info['is_admin']!=1)
+              fatal_lang_error('karma_not_topic_starter', false);
+        }
+
+     //Limit karma actions in 24h
+     if (!empty($modSettings['karmaremain']))
+        {
+        	$request = $smcFunc['db_query']('', "
+                SELECT COUNT(action)
+                FROM {$db_prefix}log_karma
+                WHERE id_executor=".$user_info['id']."
+                AND log_time >= ".time()."-86400
+                ");
+        list ($totalRemains) = $smcFunc['db_fetch_row']($request);
+        $smcFunc['db_free_result']($request);
+        $context['karma_remain'] = $modSettings['karmaremain']-$totalRemains;
+
+        if (($totalRemains>=$modSettings['karmaremain']) && !$user_info['is_admin'])
+             {
+             	$request = $smcFunc['db_query']('', "
+                SELECT log_time
+                FROM {$db_prefix}log_karma
+                WHERE id_executor=".$user_info['id']."
+                AND log_time >= ".time()."-86400
+                ORDER BY log_time ASC
+                LIMIT 1
+                ");
+        			list ($nextKarma) = $smcFunc['db_fetch_row']($request);
+        			$smcFunc['db_free_result']($request);
+        			$context['nextKarma']=$nextKarma+86400;
+                    $context['nextKarma']=(timeformat($context['nextKarma']));
+
+				fatal_lang_error('kdm_remain_error', false);
+              }
+        }
+]]></add>
+		</operation>
+
+
+		<operation>
+			<search position="replace"><![CDATA[// Delete any older items from the log. (karmaWaitTime is by hour.)
+	$smcFunc['db_query']('', '
+		DELETE FROM {db_prefix}log_karma
+		WHERE {int:current_time} - log_time > {int:wait_time}',
+		array(
+			'wait_time' => (int) ($modSettings['karmaWaitTime'] * 3600),
+			'current_time' => time(),
+		)
+	);
+]]></search>
+			<add><![CDATA[
+	//Karma Description Mod Loading Template
+	if (!empty($modSettings['karmadescmod'])){
+        loadTemplate('DescriptionKarma');}
+
+        //Prepare some variables
+        $context['page_title'] = $txt['viewkarma_title'];
+        $context['linktree'][] = array(
+            'url' => $scripturl . '?action=modifykarma',
+            'name' => $txt['viewkarma_title'] );
+
+        //This users karma can't be changed
+        if (empty($modSettings['karmacantmodify'])) $modSettings['karmacantmodify']='';
+
+             $array_value = explode (',', $modSettings['karmacantmodify']);
+             if (in_array(($_REQUEST['uid']), $array_value))
+                fatal_lang_error('karma_cant_modify', false);
+
+        //This users can't changed karma to other users
+        if (empty($modSettings['karmacantmodify2'])) $modSettings['karmacantmodify2']='';
+
+             $array_value2 = explode (',', $modSettings['karmacantmodify2']);
+             if (in_array($user_info['id'], $array_value2))
+                fatal_lang_error('karma_cant_modify2', false);
+]]></add>
+		</operation>
+
+		<operation>
+			<search position="before"><![CDATA[// They haven't, not before now, anyhow.
+]]></search>
+			<add><![CDATA[
+/*
+]]></add>
+		</operation>
+		<operation>
+			<search position="after"><![CDATA[// It was recently changed the OTHER way... so... reverse it!
+]]></search>
+			<add><![CDATA[
+*/
+	/* They haven't, not before now, anyhow.
+	If the key isn't in the array it will return.
+	Or if it does exist and it's length is 0 then it will return.
+	If Karma Description Mod disable then easy smite or applaud */
+if (!empty($modSettings['karmadescmod']))
+{
+     if (!array_key_exists('Description',$_POST) || strlen($_POST["Description"]) == 0){return;}
+}
+else
+{
+        $_POST['Description']='';
+}
+ { if (empty($action) || empty($modSettings['karmaWaitTime']))
+        {
+
+			$_POST['Description'] = AddSlashes($smcFunc['htmlspecialchars']($_POST['Description'], ENT_QUOTES));
+          if (!empty($modSettings['karmacensor']))
+          censorText($_POST['Description']);
+
+		//Prepare link
+		    if (isset ($_REQUEST['topic'])) {
+                         $link = ($_REQUEST['topic']).'.msg'.($_REQUEST['m']).'#'.'msg'.($_REQUEST['m']);
+                         $link = AddSlashes($link);
+                         }
+                elseif (isset($_REQUEST['f'])) {
+                         $link = 'PM';
+                         }
+
+		// Put it in the log.
+                $smcFunc['db_insert']('',
+                		'{db_prefix}log_karma',
+                        array('action' => 'int', 'id_target' => 'int', 'description' => 'text', 'link' => 'text', 'id_executor' => 'int', 'log_time' => 'int'),
+                        array($dir, $_REQUEST['uid'], $_POST['Description'], $link, $user_info['id'], time()),
+                        array('id_target', 'id_executor')
+                        );
+// Change by one.
+		updateMemberData($_REQUEST['uid'], array($dir == 1 ? 'karma_good' : 'karma_bad' => '+'));
+	}
+	else
+	{
+
+		$request = $smcFunc['db_query']('', '
+                                        SELECT log_time
+                                        FROM {db_prefix}log_karma
+                                        WHERE id_target={int:id_target}
+                                        AND id_executor={int:id_executor}
+                                        ORDER BY log_time DESC
+                                        LIMIT 1',
+                                        array('id_target' => $_REQUEST['uid'],
+                                        	  'id_executor' => $user_info['id'],)
+
+                                        );
+
+		$row = $smcFunc['db_fetch_assoc']($request);
+		$smcFunc['db_free_result']($request);
+
+		$restricttime = time() - $row['log_time'];
+		$timelog = (int) ($modSettings['karmaWaitTime'] * 3600);
+
+		// If you are gonna try to repeat.... don't allow it.
+		if ($restricttime < $timelog)
+			fatal_lang_error('karma_wait_time', false, array($modSettings['karmaWaitTime'], $txt['hours']));
+
+		//Prepare link
+		    if (isset ($_REQUEST['topic'])) {
+                         $link = ($_REQUEST['topic']).'.msg'.($_REQUEST['m']).'#'.'msg'.($_REQUEST['m']);
+                         $link = AddSlashes($link);
+                         }
+                elseif (isset($_REQUEST['f'])) {
+                         $link = 'PM';
+                         }
+
+
+		// You decided to go back on your previous choice?
+		 $smcFunc['db_insert']('',
+			            '{db_prefix}log_karma',
+                        array('action' => 'int', 'id_target' => 'int', 'description' => 'text', 'link' => 'text', 'id_executor' => 'int', 'log_time' => 'int'),
+                        array($dir, $_REQUEST['uid'], $_POST['Description'], $link, $user_info['id'], time()),
+                        array('id_target', 'id_executor')
+                        );
+
+]]></add>
+		</operation>
+
+		<operation>
+			<search position="replace"><![CDATA[updateMemberData($_REQUEST['uid'], array('karma_good' => '+', 'karma_bad' => '-'));
+]]></search>
+			<add><![CDATA[updateMemberData($_REQUEST['uid'], array('karma_good' => '+'));
+]]></add>
+		</operation>
+
+		<operation>
+			<search position="replace"><![CDATA[updateMemberData($_REQUEST['uid'], array('karma_bad' => '+', 'karma_good' => '-'));
+]]></search>
+			<add><![CDATA[updateMemberData($_REQUEST['uid'], array('karma_bad' => '+'));
+}
+]]></add>
+		</operation>
+		<operation>
+			<search position="after"><![CDATA[// Figure out where to go back to.... the topic?
+]]></search>
+			<add><![CDATA[$request = $smcFunc['db_query']('', '
+				SELECT value
+				FROM {db_prefix}themes
+				WHERE variable="enable_notify"
+				AND id_member={int:id_target}
+				',
+				array('id_target' => $_REQUEST['uid'],)
+				);
+
+				$row = $smcFunc['db_fetch_row']($request);
+				$smcFunc['db_free_result']($request);
+
+	if (isset($modSettings['karmanotifier']) && !$user_info['is_guest'] && ($row['0'])==2)
+        	{
+				$link=='PM' ? $url=$scripturl.'?action=pm' : $url=$scripturl.'?topic='.$link;
+
+
+				if ($modSettings['karma_pm_send_link'])
+					if (isset($modSettings['karma_pm_send_desc']))
+						{
+							$karma_pm_body_with = $txt['karma_pm_body'].$txt['karma_pm_body2'].$_REQUEST['uid'].$txt['karma_pm_send_desc2'].$_POST['Description'].$txt['karma_pm_send_changelink'].$url;
+						}
+					else
+						{
+							$karma_pm_body_with = $txt['karma_pm_body'].$txt['karma_pm_body2'].$_REQUEST['uid'].$txt['karma_pm_send_changelink'].$url;
+						}
+				else
+					if (isset($modSettings['karma_pm_send_desc']))
+						{
+							$karma_pm_body_with = $txt['karma_pm_body'].$txt['karma_pm_send_desc2'].$_POST['Description'].$txt['karma_pm_send_changelink'].$url;
+						}
+					else
+						{
+							$karma_pm_body_with = $txt['karma_pm_body'].$txt['karma_pm_send_changelink'].$url;
+						}
+
+				if ($modSettings['karma_pm_send_link'])
+					if (isset($modSettings['karma_pm_send_desc']))
+						{
+							$karma_pm_body_without = $txt['karma_pm_body'].$txt['karma_pm_body2'].$_REQUEST['uid'].$txt['karma_pm_send_desc2'].$_POST['Description'];
+						}
+					else
+						{
+							$karma_pm_body_without = $txt['karma_pm_body'].$txt['karma_pm_body2'].$_REQUEST['uid'];
+						}
+				else
+					if (isset($modSettings['karma_pm_send_desc']))
+						{
+							$karma_pm_body_without = $txt['karma_pm_body'].$txt['karma_pm_send_desc2'].$_POST['Description'];
+						}
+					else
+						{
+							$karma_pm_body_without = $txt['karma_pm_body'];
+						}
+
+				$modSettings['karma_pm_send_changelink'] ? $karma_pm_body = $karma_pm_body_with : $karma_pm_body_without;
+				if (!$modSettings['karma_pm_send_changelink']) $karma_pm_body = $karma_pm_body_without;
+
+				$smcFunc['db_insert']('', '
+				{db_prefix}personal_messages',
+				array('id_member_from' => 'int', 'deleted_by_sender' => 'int', 'from_name' => 'text', 'subject' => 'text', 'body' => 'text', 'msgtime' => 'int'),
+				array($modSettings['karmaidmember'], '1', 'Admin', $txt['karma_pm_subject'], $karma_pm_body,  time()),
+				array('id_target', 'id_executor')
+				);
+
+				$ID_PM = $smcFunc['db_insert_id']('{db_prefix}pm_recipients', 'id_pm');;
+				$ID_PM2 = $_REQUEST['uid'];
+
+				$smcFunc['db_insert']('', '
+				{db_prefix}pm_recipients',
+				array('id_pm' => 'int', 'id_member' => 'int'),
+				array($ID_PM, $ID_PM2),
+				array('id_target', 'id_executor')
+				);
+
+				$smcFunc['db_query']('', '
+				UPDATE {db_prefix}log_karma
+				SET is_read="1"
+				WHERE is_read="0"
+				AND id_target={int:id_target}',
+
+				array('id_target' => $_REQUEST['uid'],)
+				);
+
+				updateMemberData($_REQUEST['uid'], array('instant_messages' => '+', 'unread_messages' => '+'));
+
+		}
+]]></add>
+		</operation>
+
+		<operation>
+			<search position="after"><![CDATA[// JavaScript as a last resort.]]></search>
+			<add><![CDATA[
+/*
+]]></add>
+		</operation>
+
+		<operation>
+			<search position="after"><![CDATA[// What's this?  I dunno, what are you talking about?  Never seen this before, nope.  No siree.]]></search>
+			<add><![CDATA[
+*/
+]]></add>
+		</operation>
+	
+		<operation>
+			<search position="end"></search>
+			<add><![CDATA[
+}
+function ModKarm()
+{
+        global $modSettings, $db_prefix, $txt, $user_info, $topic, $options, $context, $scripturl, $smcFunc;
+
+        // If the mod is disabled, show an error.
+        if (empty($modSettings['karmaMode']))
+                fatal_lang_error('feature_disabled');
+
+        // If you're a guest or can't do this, blow you off...
+        is_not_guest();
+        isAllowedTo('karma_edit');
+
+        checkSession('get');
+
+	// If you don't have enough posts, tough luck.
+	// !!! Should this be dropped in favor of post group permissions?  Should this apply to the member you are smiting/applauding?
+	if ($user_info['posts'] < $modSettings['karmaMinPosts'])
+		fatal_lang_error('not_enough_posts_karma', true, array($modSettings['karmaMinPosts']));
+
+	// And you can't modify your own, punk! (use the profile if you need to.)
+	if (empty($_REQUEST['uid']) || (int) $_REQUEST['uid'] == $user_info['id'])
+		fatal_lang_error('cant_change_own_karma', false);
+
+        // The user ID _must_ be a number, no matter what.
+        $_REQUEST['uid'] = (int) $_REQUEST['uid'];
+
+        // Applauding or smiting?
+        $dir = $_REQUEST['sa'] != 'applaud' ? -1 : 1;
+
+        // Users can change karma to only topic starter if you check this function
+        if (!empty($modSettings['karmatopicstarter']))
+        {
+        $request = $smcFunc['db_query']('', '
+                        SELECT id_member_started
+                        FROM {db_prefix}topics
+                        WHERE id_topic = {int:id_topic}
+                        LIMIT 1',
+                        array(
+								'id_topic' => $_REQUEST['topic'],
+			)
+        );
+
+        $row = $smcFunc['db_fetch_row']($request);
+                $smcFunc['db_free_result']($request);
+        if ($_REQUEST['uid'] != $row[0] && $user_info['is_admin']!=1)
+              fatal_lang_error('karma_not_topic_starter', false);
+        }
+
+        //Limit karma actions in 24h
+     if (!empty($modSettings['karmaremain']))
+        {
+        	$request = $smcFunc['db_query']('', "
+                SELECT COUNT(action)
+                FROM {$db_prefix}log_karma
+                WHERE id_executor=".$user_info['id']."
+                AND log_time >= ".time()."-86400
+                ");
+        list ($totalRemains) = $smcFunc['db_fetch_row']($request);
+        $smcFunc['db_free_result']($request);
+        $context['karma_remain'] = $modSettings['karmaremain']-$totalRemains;
+
+        if (($totalRemains>=$modSettings['karmaremain']) && !$user_info['is_admin'])
+             {
+             	$request = $smcFunc['db_query']('', "
+                SELECT log_time
+                FROM {$db_prefix}log_karma
+                WHERE id_executor=".$user_info['id']."
+                AND log_time >= ".time()."-86400
+                ORDER BY log_time ASC
+                LIMIT 1
+                ");
+        			list ($nextKarma) = $smcFunc['db_fetch_row']($request);
+        			$smcFunc['db_free_result']($request);
+        			$context['nextKarma']=$nextKarma+86400;
+                    $context['nextKarma']=(timeformat($context['nextKarma']));
+
+				fatal_lang_error('kdm_remain_error', false);
+              }
+        }
+
+        //This users karma can't be changed
+        if (empty($modSettings['karmacantmodify'])) $modSettings['karmacantmodify']='';
+
+             $array_value = explode (',', $modSettings['karmacantmodify']);
+             if (in_array(($_REQUEST['uid']), $array_value))
+                fatal_lang_error('karma_cant_modify', false);
+
+        //This users can't changed karma to other users
+        if (empty($modSettings['karmacantmodify2'])) $modSettings['karmacantmodify2']='';
+
+             $array_value2 = explode (',', $modSettings['karmacantmodify2']);
+             if (in_array($user_info['id'], $array_value2))
+                fatal_lang_error('karma_cant_modify2', false);
+
+	  // Start off with no change in karma.
+        $action = 0;
+
+        (!isset($modSettings['karmawhatwrite'])) ? $Description='' : $Description=$modSettings['karmawhatwrite'];
+
+
+          // Not an administrator... or one who is restricted as well.
+        if (!empty($modSettings['karmaTimeRestrictAdmins']) || !allowedTo('moderate_forum'))
+        {
+                // Find out if this user has done this recently...
+                $request = $smcFunc['db_query']('', '
+					SELECT action
+					FROM {db_prefix}log_karma
+					WHERE id_target = {int:id_target}
+					AND id_executor = {int:current_member}
+					LIMIT 1',
+					array(
+					'current_member' => $user_info['id'],
+					'id_target' => $_REQUEST['uid'],
+			)
+		);
+                if ($smcFunc['db_num_rows']($request) > 0)
+                        list ($action) = $smcFunc['db_fetch_row']($request);
+                $smcFunc['db_free_result']($request);
+        }
+
+        // They haven't, not before now, anyhow.
+        if (empty($action) || empty($modSettings['karmaWaitTime']))
+        {
+                //Prepare link
+                    if (isset ($_REQUEST['topic'])) {
+                         $link = ($_REQUEST['topic']).'.msg'.($_REQUEST['m']).'#'.'msg'.($_REQUEST['m']);
+                         $link = AddSlashes($link);
+                         }
+                elseif (isset($_REQUEST['f'])) {
+                         $link = 'PM';
+                         }
+
+                // Put it in the log.
+                $smcFunc['db_insert']('',
+                		'{db_prefix}log_karma',
+                        array('action' => 'int', 'id_target' => 'int', 'description' => 'text', 'link' => 'text', 'id_executor' => 'int', 'log_time' => 'int'),
+                        array($dir, $_REQUEST['uid'], $Description, $link, $user_info['id'], time()),
+                        array('id_target', 'id_executor')
+                        );
+
+                // Change by one.
+                updateMemberData($_REQUEST['uid'], array($dir == 1 ? 'karma_good' : 'karma_bad' => '+'));
+        }
+        else
+        {       $request = $smcFunc['db_query']('', '
+                                        SELECT log_time
+                                        FROM {db_prefix}log_karma
+                                        WHERE id_target={int:id_target}
+                                        AND id_executor={int:id_executor}
+                                        ORDER BY log_time DESC
+                                        LIMIT 1',
+                                        array('id_target' => $_REQUEST['uid'],
+                                        	  'id_executor' => $user_info['id'],)
+
+                                        );
+                $row = $smcFunc['db_fetch_assoc']($request);
+                $smcFunc['db_free_result']($request);
+
+                $restricttime = time() - $row['log_time'];
+                $timelog = (int) ($modSettings['karmaWaitTime'] * 3600);
+
+                // If you are gonna try to repeat.... don't allow it.
+                if ($restricttime < $timelog)
+                        fatal_lang_error('karma_wait_time', false, array($modSettings['karmaWaitTime'], $txt['hours']));
+
+                //Prepare link
+                    if (isset ($_REQUEST['topic'])) {
+                         $link = ($_REQUEST['topic']).'.msg'.($_REQUEST['m']).'#'.'msg'.($_REQUEST['m']);
+                         $link = AddSlashes($link);
+                         }
+                elseif (isset($_REQUEST['f'])) {
+                         $link = 'PM';
+                         }
+
+                // You decided to go back on your previous choice?
+                $smcFunc['db_insert']('',
+                         '{db_prefix}log_karma',
+                         array('action' => 'int', 'id_target' => 'int', 'description' => 'text', 'link' => 'text', 'id_executor' => 'int', 'log_time' => 'int'),
+                         array($dir, $_REQUEST['uid'], $Description, $link, $user_info['id'], time()),
+                         array('id_target', 'id_executor')
+                        );
+
+
+                // It was recently changed the OTHER way... so... reverse it!
+                if ($dir == 1)
+                        updateMemberData($_REQUEST['uid'], array('karma_good' => '+'));
+                else
+                        updateMemberData($_REQUEST['uid'], array('karma_bad' => '+'));
+        }
+
+	$request = $smcFunc['db_query']('', '
+				SELECT value
+				FROM {db_prefix}themes
+				WHERE variable="enable_notify"
+				AND id_member={int:id_target}
+				',
+				array('id_target' => $_REQUEST['uid'],
+					  )
+				);
+
+				$row = $smcFunc['db_fetch_row']($request);
+				$smcFunc['db_free_result']($request);
+
+	if (isset($modSettings['karmanotifier']) && !$user_info['is_guest'] && ($row['0'])==2)
+        	{
+        			$link=='PM' ? $url=$scripturl.'?action=pm' : $url=$scripturl.'?topic='.$link;
+
+				if ($modSettings['karma_pm_send_link'])
+					if ($modSettings['karma_pm_send_changelink'])
+						{
+							$karma_pm_body = $txt['karma_pm_body'].$txt['karma_pm_body2'].$_REQUEST['uid'].$txt['karma_pm_send_changelink'].$url;
+						}
+					else
+						{
+							$karma_pm_body = $txt['karma_pm_body'].$txt['karma_pm_body2'].$_REQUEST['uid'];
+						}
+				else
+					$karma_pm_body = $txt['karma_pm_body'];
+
+				$smcFunc['db_insert']('', '
+				{db_prefix}personal_messages',
+				array('id_member_from' => 'int', 'deleted_by_sender' => 'int', 'from_name' => 'text', 'subject' => 'text', 'body' => 'text', 'msgtime' => 'int'),
+				array($modSettings['karmaidmember'], '1', 'Admin', $txt['karma_pm_subject'], $karma_pm_body,  time()),
+				array('id_target', 'id_executor')
+				);
+
+				$ID_PM = $smcFunc['db_insert_id']('{db_prefix}pm_recipients', 'id_pm');;
+				$ID_PM2 = $_REQUEST['uid'];
+
+				$smcFunc['db_insert']('', '
+				{db_prefix}pm_recipients',
+				array('id_pm' => 'int', 'id_member' => 'int'),
+				array($ID_PM, $ID_PM2),
+				array('id_target', 'id_executor')
+				);
+
+				$smcFunc['db_query']('', '
+				UPDATE {db_prefix}log_karma
+				SET is_read="1"
+				WHERE is_read="0"
+				AND id_target={int:id_target}',
+
+				array('id_target' => $_REQUEST['uid'],)
+				);
+
+				updateMemberData($_REQUEST['uid'], array('instant_messages' => '+', 'unread_messages' => '+'));
+
+		}
+
+        // Figure out where to go back to.... the topic?
+        if (!empty($topic))
+			redirectexit('topic=' . $topic . '.' . $_REQUEST['start'] . '#msg' . (int) $_REQUEST['m']);
+	  // Hrm... maybe a personal message?
+	  elseif (isset($_REQUEST['f']))
+			redirectexit('action=pm;f=' . $_REQUEST['f'] . ';start=' . $_REQUEST['start'] . (isset($_REQUEST['l']) ? ';l=' . (int) $_REQUEST['l'] : '') . (isset($_REQUEST['pm']) ? '#msg' . (int) $_REQUEST['pm'] : ''));
+
+        else
+        {
+                echo '
+<html>
+        <head>
+                <title>...</title>
+                <script language="JavaScript" type="text/javascript"><!-- // -->
+                        history.go(-1);
+                // ]',']></script>
+        </head>
+        <body>&laquo;</body>
+</html>';
+
+                obExit(false);
+    }
+}
+
+]]></add>
+</operation>
+	</file>
+</modification>

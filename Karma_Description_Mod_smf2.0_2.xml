@@ -1,0 +1,666 @@
+<?xml version="1.0"?>
+<!DOCTYPE modification SYSTEM "http://www.simplemachines.org/xml/modification">
+<modification xmlns="http://www.simplemachines.org/xml/modification" xmlns:smf="http://www.simplemachines.org/">
+	<id>IvanV.PetrovichAkaGrek:KarmaDescriptionMod</id>
+	<version>2.7.1</version>
+	
+	<file name="$sourcedir/ManageMaintenance.php">
+		<operation>
+			<search position="replace"><![CDATA[// Clear out the karma actions.
+	$smcFunc['db_query']('', '
+		DELETE FROM {db_prefix}log_karma');
+]]></search>
+			<add><![CDATA[
+//Karma Description Mod
+/* Clear out the karma actions.
+	$smcFunc['db_query']('', '
+		DELETE FROM {db_prefix}log_karma');
+*/
+]]></add>
+		</operation>
+		<operation>
+			<search position="after"><![CDATA[// Empties all uninmportant logs
+]]></search>
+			<add><![CDATA[
+//Karma Description Mod
+// Empties all karma actions
+function MaintainEmptyKarma()
+{
+	global $context, $smcFunc, $txt;
+
+	checkSession();
+
+    // Clear out the karma actions.
+	$smcFunc['db_query']('', '
+		DELETE FROM {db_prefix}log_karma');
+
+updateSettings(array('search_pointer' => 0));
+
+	$context['maintenance_finished'] = $txt['maintain_karmalog'];
+}
+
+// Empties all karma points
+function MaintainEmptyKarmaPoints()
+{
+	global $context, $smcFunc, $txt;
+    $id_member="0";
+    $karma_bad="0";
+    $karma_good="0";
+	checkSession();
+
+    $smcFunc['db_query']('', '
+		UPDATE {db_prefix}members
+		SET karma_good = {int:karma_good}
+		WHERE id_member != {int:id_member}',
+		array(
+			'id_member' => $id_member,
+			'karma_good' => $karma_good,
+		)
+	);
+    $smcFunc['db_query']('', '
+		UPDATE {db_prefix}members
+		SET karma_bad = {int:karma_bad}
+		WHERE id_member != {int:id_member}',
+		array(
+			'id_member' => $id_member,
+			'karma_bad' => $karma_bad,
+		)
+	);
+
+    // Erase karma description log
+        if (isset($_POST['del']))
+                MaintainEmptyKarma();
+
+updateSettings(array('search_pointer' => 0));
+
+	$context['maintenance_finished'] = $txt['maintain_karma_points'];
+}
+]]></add>
+		</operation>
+		<operation>
+			<search position="after"><![CDATA['logs' => 'MaintainEmptyUnimportantLogs',
+]]></search>
+			<add><![CDATA[
+'karma' => 'MaintainEmptyKarma',
+'karma_points' => 'MaintainEmptyKarmaPoints',
+]]></add>
+		</operation>
+</file>
+	<file name="$sourcedir/ManageSettings.php">
+		<operation>
+			<search position="before"><![CDATA[array('select', 'karmaMode', explode('|', $txt['karma_options'])),
+]]></search>
+			<add><![CDATA[
+		   	array('check', 'karmadescmod'),
+			array('int', 'karmamaxmembers'),
+			array('check', 'karmalogview'),
+		   	array('check', 'karmapermiss'),
+		   	array('check', 'karmalinks'),
+		   	array('check', 'karmaisowner'),
+		   	array('check', 'karmakarma'),
+		   	array('check', 'karmaurl'),
+		   	array('check', 'karmaotherstat'),
+		   	array('check', 'karmasurv'),
+		   	array('text', 'karmawhatwrite', 36),
+		   	array('check', 'karmacensor'),
+		   	array('check', 'karmatopicstarter'),
+			array('int', 'karmaremain'),
+			array('check', 'karmabuttons'),
+			array('check', 'karmapictureinlog'),
+			array('check', 'karmadelete'),
+			array('check', 'karmalabellink'),
+   		'',
+		   	array('check', 'karmanotifier'),
+		   	array('int', 'karmaidmember'),
+		   	array('check', 'karma_pm_send_link'),
+   			array('check', 'karma_pm_send_desc'),
+            		array('check', 'karma_pm_send_changelink'),
+   		'',
+   			array('text', 'karmacantmodify', 36),
+ 			array('text', 'karmacantmodify2', 36),
+		'',
+			array('check', 'karmalastchange'),
+			array('int', 'karmalastchangenum'),
+			array('int', 'karmadescfieldnum'),
+		'',
+			array('check', 'karmainmessage'),
+			array('check', 'karmainmessagelink'),
+]]></add>
+		</operation>
+	</file>
+	<file name="$sourcedir/Subs.php">
+		<operation>
+			<search position="replace"><![CDATA[global $modSettings, $user_info, $scripturl, $context, $settings, $options, $txt, $maintenance;
+]]></search>
+			<add><![CDATA[global $db_prefix, $_REQUEST, $sourcedir, $modSettings, $user_info, $scripturl, $context, $settings, $options, $txt, $maintenance;
+]]></add>
+		</operation>
+		<operation>
+			<search position="after"><![CDATA[// Personal message popup...
+]]></search>
+			<add><![CDATA[//Karma Description Mod (Notifier)
+	//Popup Message
+	if (isset($modSettings['karmanotifier']) && !$user_info['is_guest'] && (!isset($options['enable_notify'])))
+	{
+	$options['enable_notify']=0;
+	}
+	if (isset($modSettings['karmanotifier']) && !$user_info['is_guest'] && ($options['enable_notify'])==1)
+		{
+		 $result = $smcFunc['db_query']('', '
+		 	SELECT COUNT(is_read)
+		 	FROM {db_prefix}log_karma
+		 	WHERE id_target={int:current_member}
+		 	AND is_read=0
+		 	',
+		 	array('current_member' => $user_info['id'],)
+
+		 	);
+
+                $row = $smcFunc['db_fetch_row']($result);
+                $context['kn'] = $row[0];
+                $smcFunc['db_free_result']($result);
+
+		$request = $smcFunc['db_query']('', '
+			UPDATE {db_prefix}log_karma
+			SET is_read = 1
+			WHERE id_target={int:current_member}
+			AND is_read=0
+			',
+			array('current_member' => $user_info['id'],)
+			);
+
+		if (($context['kn'])!=0)
+			{
+				$context['html_headers'] .= '
+					<script language="JavaScript" type="text/javascript"><!-- // -->
+					if (confirm("' . $txt['karma_notifier'] . $context['kn']. $txt['karma_notifier2'].'"))
+					window.open("' . $scripturl . '?action=ownkarma;u='.$user_info['id'].'");
+					// ]'.']></script>';
+			}
+		}
+]]></add>
+		</operation>
+	</file>
+	<file name="$sourcedir/BoardIndex.php">
+		<operation>
+			<search position="before"><![CDATA[$context['show_who'] = allowedTo('who_view') && !empty($modSettings['who_enabled']);
+]]></search>
+			<add><![CDATA[$context['show_karmastat'] = allowedTo('karmalog_view') && empty($modsettings['karmapermiss']);
+	//Load last karma chage?
+    global $db_prefix, $smcFunc;
+
+    if (!empty($modSettings['karmadescmod']) && !empty($modSettings['karmalastchange']) && ($context['show_karmastat']) && ($context['user']['is_admin']))
+    {
+    	$result = $smcFunc['db_query']('', "
+                             SELECT lk.id_target, lk.id_executor, lk.log_time, lk.action, lk.description, lk.link, memt.real_name AS target_name, meme.real_name AS executor_name, memt.karma_good AS target_karma_good, memt.karma_bad AS target_karma_bad, meme.karma_good AS executor_karma_good, meme.karma_bad AS executor_karma_bad
+                             FROM {$db_prefix}log_karma AS lk, {$db_prefix}members AS memt, {$db_prefix}members AS meme
+                             WHERE memt.id_member = lk.id_target
+                             AND meme.id_member = lk.id_executor
+                             ORDER BY lk.log_time DESC
+                             LIMIT $modSettings[karmalastchangenum] ");
+
+        //All recieve values to context variables please.
+        $context['karma_changes'] = array();
+            while ($row = $smcFunc['db_fetch_assoc']($result))
+        $context['karma_changes'][] = array(
+                      'executor' => stripslashes($row['executor_name']),
+                      'target' => stripslashes($row['target_name']),
+                      'action' => ($row['action'] == 1) ? '+' : '-',
+                      'Description' => stripslashes($row['description']),
+                      'time' => timeformat($row['log_time']),
+                      'id_exec' => stripslashes($row['id_executor']),
+                      'id_targ' => stripslashes($row['id_target']),
+                      'link' => stripslashes($row['link']),
+                      'logtime' => strftime("%H:%M:%S, %d %b %Y",$row['log_time']),
+                                            );
+        $smcFunc['db_free_result']($result);
+    }
+
+   if (!empty($modSettings['karmadescmod']) && !empty($modSettings['karmalastchange']) && $context['show_karmastat'] && empty($modSettings['karmaisowner']))
+    {
+    	$result = $smcFunc['db_query']('', "
+                             SELECT lk.id_target, lk.id_executor, lk.log_time, lk.action, lk.description, lk.link, memt.real_name AS target_name, meme.real_name AS executor_name, memt.karma_good AS target_karma_good, memt.karma_bad AS target_karma_bad, meme.karma_good AS executor_karma_good, meme.karma_bad AS executor_karma_bad
+                             FROM {$db_prefix}log_karma AS lk, {$db_prefix}members AS memt, {$db_prefix}members AS meme
+                             WHERE memt.id_member = lk.id_target
+                             AND meme.id_member = lk.id_executor
+                             ORDER BY lk.log_time DESC
+                             LIMIT $modSettings[karmalastchangenum] ");
+
+        //All recieve values to context variables please.
+        $context['karma_changes'] = array();
+            while ($row = $smcFunc['db_fetch_assoc']($result))
+        $context['karma_changes'][] = array(
+                      'executor' => stripslashes($row['executor_name']),
+                      'target' => stripslashes($row['target_name']),
+                      'action' => ($row['action'] == 1) ? '+' : '-',
+                      'Description' => stripslashes($row['description']),
+                      'time' => timeformat($row['log_time']),
+                      'id_exec' => stripslashes($row['id_executor']),
+                      'id_targ' => stripslashes($row['id_target']),
+                      'link' => stripslashes($row['link']),
+                      'logtime' => strftime("%H:%M:%S, %d %b %Y",$row['log_time']),
+                                            );
+        $smcFunc['db_free_result']($result);
+    }
+]]></add>
+		</operation>
+	</file>
+	<file name="$sourcedir/Display.php">
+		<operation>
+			<search position="after"><![CDATA[// Check if spellchecking is both enabled and actually working. (for quick reply.)
+]]></search>
+			<add><![CDATA[    //Karma Description Mod
+	if (!empty($modSettings['karmabuttons']))
+	{
+	$modSettings['karmaSmiteLabel'] = '<img src="'.$settings['default_images_url'].'/kdm_down.png" alt="'.$modSettings['karmaSmiteLabel'].'" title="'.$modSettings['karmaSmiteLabel'].'" />';
+	$modSettings['karmaApplaudLabel'] = '<img src="'.$settings['default_images_url'].'/kdm_up.png" alt="'.$modSettings['karmaApplaudLabel'].'" title="'.$modSettings['karmaApplaudLabel'].'" />';
+	}
+
+]]></add>
+		</operation>
+		<operation>
+			<search position="after"><![CDATA[// Is this user the message author?
+]]></search>
+			<add><![CDATA[
+ 		//Karma Description Mod
+ 		$link=$_REQUEST['topic'].".msg".$message['id_msg']."#msg".$message['id_msg'];
+
+		$request = $smcFunc['db_query']('', '
+		SELECT COUNT(action)
+		FROM {db_prefix}log_karma
+		WHERE link = {text:linker}
+		AND action = 1',
+		array(
+				'linker' => $link,
+			)
+		);
+
+  		list ($totalKarmaPlus) = $smcFunc['db_fetch_row']($request);
+		$smcFunc['db_free_result']($request);
+        $context['karma_message_plus']=$totalKarmaPlus;
+
+		$request = $smcFunc['db_query']('', '
+		SELECT COUNT(action)
+		FROM {db_prefix}log_karma
+		WHERE link = {text:linker}
+		AND action = -1',
+		array(
+				'linker' => $link,
+			)
+		);
+
+  		list ($totalKarmaMinus) = $smcFunc['db_fetch_row']($request);
+		$smcFunc['db_free_result']($request);
+        $context['karma_message_minus']=$totalKarmaMinus;
+
+
+]]></add>
+		</operation>
+	</file>
+
+	<file name="$sourcedir/PersonalMessage.php">
+		<operation>
+			<search position="after"><![CDATA[// Finally mark the relevant messages as read.
+]]></search>
+			<add><![CDATA[    if (!empty($modSettings['karmabuttons']))
+	{
+	global $settings;
+	$modSettings['karmaSmiteLabel'] = '<img src="'.$settings['default_images_url'].'/kdm_down.png" alt="'.$modSettings['karmaSmiteLabel'].'" title="'.$modSettings['karmaSmiteLabel'].'" />';
+	$modSettings['karmaApplaudLabel'] = '<img src="'.$settings['default_images_url'].'/kdm_up.png" alt="'.$modSettings['karmaApplaudLabel'].'" title="'.$modSettings['karmaApplaudLabel'].'" />';
+	}
+
+]]></add>
+		</operation>
+	</file>
+	<file name="$sourcedir/Profile.php">
+		<operation>
+			<search position="before"><![CDATA[$context['template_layers'][] = 'profile';
+]]></search>
+			<add><![CDATA[$context['show_karmastat'] = allowedTo('karmalog_view') && empty($modsettings['karmapermiss']);
+]]></add>
+		</operation>
+	</file>
+	<file name="$sourcedir/Profile-View.php">
+		<operation>
+			<search position="after"><![CDATA[// They haven't even been registered for a full day!?
+]]></search>
+			<add><![CDATA[//ID verification
+        $memID == $user_info['id']? $context['owner'] = 1 : $context['owner'] = 0;
+
+]]></add>
+		</operation>
+</file>
+	<file name="$sourcedir/ManagePermissions.php">
+		<operation>
+			<search position="before"><![CDATA['who_view',
+]]></search>
+			<add><![CDATA['karmalog_view',
+]]></add>
+		</operation>
+		<operation>
+			<search position="before"><![CDATA['who_view' => array(false, 'general', 'view_basic_info'),
+]]></search>
+			<add><![CDATA['karmalog_view' => array(false, 'general', 'view_basic_info'),
+]]></add>
+		</operation>
+	</file>
+	
+<file name="$themedir/Settings.template.php">
+		<operation>
+			<search position="after"><![CDATA[);
+}
+
+function template_settings()
+]]></search>
+			<add><![CDATA[
+		array(
+			'id' => 'enable_notify',
+			'label' => $txt['display_karma_settings'],
+			'options' => array(
+				0 => $txt['enable_notify_none'],
+				1 => $txt['enable_notify_popup'],
+				2 => $txt['enable_notify_pm'],
+			),
+			'default' => true,
+		),
+]]></add>
+		</operation>
+</file>
+
+	<file name="$themedir/ManageMaintenance.template.php">
+		<operation>
+			<search position="after"><![CDATA[<br class="clear" />';
+}
+
+// Template for the member maintenance tasks.
+]]></search>
+			<add><![CDATA[		<div class="cat_bar">
+			<h3 class="catbg">', $txt['maintain_karmalog'], '</h3>
+			</div>
+		<div class="windowbg">
+			<span class="topslice"><span></span></span>
+				<div class="content">
+					<form action="', $scripturl, '?action=admin;area=maintain;sa=routine;activity=karma" method="post" accept-charset="', $context['character_set'], '">
+						<p>', $txt['maintain_karmalog_info'], '</p>
+						<span><input type="submit" value="', $txt['maintain_run_now'], '" class="button_submit" /></span>
+						<input type="hidden" name="', $context['session_var'], '" value="', $context['session_id'], '" />
+					</form>
+				</div>
+			<span class="botslice"><span></span></span>
+		</div>
+		<div class="cat_bar">
+			<h3 class="catbg">', $txt['maintain_karma_points'], '</h3>
+		</div>
+		<div class="windowbg">
+			<span class="topslice"><span></span></span>
+				<div class="content">
+					<form action="', $scripturl, '?action=admin;area=maintain;sa=routine;activity=karma_points" method="post" accept-charset="', $context['character_set'], '">
+						<p>', $txt['maintain_karma_points_info'], '</p>
+                        <p><input type="checkbox" name="del" value="del" class="check"/> ', $txt['maintain_karma_points_info2'], '</p>
+						<span><input type="submit" value="', $txt['maintain_run_now'], '" class="button_submit" /></span>
+						<input type="hidden" name="', $context['session_var'], '" value="', $context['session_id'], '" />
+					</form>
+				</div>
+			<span class="botslice"><span></span></span>
+		</div>
+
+]]></add>
+		</operation>		
+	</file>
+	<file name="$themedir/Display.template.php">
+		<operation>
+                        <search position="before"><![CDATA[// Is karma display enabled?  Total or +/-?
+]]></search>
+				<add><![CDATA[
+            $context['show_karmastat'] = allowedTo('karmalog_view') && empty($modsettings['karmapermiss']);
+
+]]></add>
+		</operation>
+		<operation>
+                        <search position="replace"><![CDATA[', $modSettings['karmaLabel'], ' ', $message['member']['karma']['good'] - $message['member']['karma']['bad'], '</li>';
+]]></search>
+				<add><![CDATA[', (!empty($modSettings['karmadescmod']) && !empty($modSettings['karmalabellink']) && $context['show_karmastat']) ? '<a href="'. $scripturl . '?action=ownkarma;u='. $message['member']['id'] .'">'. $modSettings['karmaLabel'] .'</a>' : $modSettings['karmaLabel'] ,' ', $message['member']['karma']['good'] - $message['member']['karma']['bad'], '</li>';
+
+]]></add>
+		</operation>
+		<operation>
+                        <search position="replace"><![CDATA[', $modSettings['karmaLabel'], ' +', $message['member']['karma']['good'], '/-', $message['member']['karma']['bad'], '</li>';
+]]></search>
+				<add><![CDATA[', (!empty($modSettings['karmadescmod']) && !empty($modSettings['karmalabellink']) && $context['show_karmastat']) ? '<a href="'. $scripturl . '?action=ownkarma;u=' . $message['member']['id'] . '">'.$modSettings['karmaLabel'].'</a>' : $modSettings['karmaLabel'] ,  ' +', $message['member']['karma']['good'], '/-', $message['member']['karma']['bad'], '</li>';
+
+]]></add>
+		</operation>
+<operation>
+                        <search position="before"><![CDATA[', $txt['logged'];
+]]></search>
+				<add><![CDATA[
+		//Karma Description Mod
+        if (!empty($modSettings['karmadescmod']) && !empty($modSettings['karmainmessage']))
+           {
+        		if (($context['karma_message_plus']!=0) || ($context['karma_message_minus']!=0))
+		        {
+				echo '
+			          <br>
+						<div class="floatright">';
+							if (!empty($modSettings['karmainmessagelink']))
+							{
+								echo '<a href="'. $scripturl . '?action=karmamessage;u='. $message['member']['id'] .';topic=', $context['current_topic'], ';m=', $message['id'], '"> +'.$context['karma_message_plus'].'/-'.$context['karma_message_minus'].$txt['karma_count'].'</a></div>';
+							}
+							else
+							{
+								echo '+'.$context['karma_message_plus'].'/-'.$context['karma_message_minus'].$txt['karma_count'].'</div>';
+							}
+				}
+
+			}			
+
+]]></add>
+		</operation>
+</file>
+
+	<file name="$themedir/BoardIndex.template.php">
+		<operation>
+                        <search position="before"><![CDATA[// Show statistical style information...
+	if ($settings['show_stats_index'])
+	{
+]]></search>
+				<add><![CDATA[		if (!empty($modSettings['karmadescmod']) && !empty($modSettings['karmalastchange']) && $context['show_karmastat'] && empty($modSettings['karmaisowner']) && (!empty($modSettings['karmapermiss'])) && ($context['user']['is_admin']!=1))
+		{
+		echo '
+		<div class="title_barIC">
+			<h4 class="titlebg">
+				<span class="ie6_header floatleft"></span>
+					<a href="', $scripturl, '?action=viewkarma"><img class="icon" src="', $settings['images_url'], '/stats_boards.gif" alt="', $txt['karmaview'], '" /></a>
+				<span>', $modSettings['karmalastchangenum']>'1' ? $txt['karma_last_change1'].$modSettings['karmalastchangenum'].$txt['karma_last_change2'] : $txt['karma_last_change'], '</span>
+			</h4>
+		</div>
+			';
+                $alternate = true;
+
+               	echo '
+                <table class="table_grid" cellspacing="0" width="100%">
+
+                        <thead>
+                        <tr class="catbg">
+                                        <th scope="col" class="centertext first_th" width="14%">', $txt['karmawho'], '</th>
+                                        <th scope="col" class="centertext" width="14%">', $txt['karmawhos'],'</th>
+                                        <th scope="col" class="centertext" width="10%">', $txt['karmawhat'],'</th>
+                                        <th scope="col" class="centertext" width="31%">', $txt['karmadesc'],'</th>';
+	                                    if (!empty($modSettings['karmaurl'])) echo '<th scope="col" class="centertext" width="9%">', $txt['karmawhere'],'</th>';
+	                              echo '
+                                        <th scope="col" class="centertext last_th" width="22%">', $txt['karmatime'],'</th>
+
+                        </tr>
+                        </thead>';
+
+               	foreach ($context['karma_changes'] as $member)
+                {
+                	$member['action']=='+' ? $button='kdm_up.png' : $button='kdm_down.png';
+
+                    $stop = (int)$modSettings['karmadescfieldnum'];
+
+                    global $smcFunc;
+
+               	echo '
+		               	<tr class="windowbg', $alternate ? '2' : '', '">
+                                        <td width="14%" align="center"><a href="'. $scripturl . '?action=profile;u=' . $member['id_exec'] . '" title="' . $txt['karma_profile_of'] . ' ' . $member['executor'] . '">' . $member['executor'] . '</a>
+                                        <td width="14%" align="center"><a href="'. $scripturl . '?action=profile;u=' . $member['id_targ'] . '" title="' . $txt['karma_profile_of'] . ' ' . $member['target'] . '">' . $member['target'] . '</a>
+                                        <td width="10%" align="center">', !empty($modSettings['karmapictureinlog']) ? ' <img src="'.$settings['default_images_url'].'/'.$button.'" />' : $member['action'],'</td>
+                                        <td width="31%" align="center" title="'.$member['Description'].'">', strlen($member['Description'])>$stop ? $smcFunc['substr']($member['Description'],0,$stop).'...' : $member['Description'],'</td>';
+                                        if (!empty($modSettings['karmaurl'])) echo '<td width="9%" align="center">',$member['link']!='PM' ? '<a href="'. $scripturl . '?topic='. $member['link'].'" target="_blank">'.$txt['karmawhereurl'].'</a>' : $txt['karmawhereurl2'],'</td>'; else echo'';
+                                        echo ' <td width="22%" align="center">', $member['time'],'</td>
+                  		</tr>';
+				$alternate = !$alternate;
+				}
+				echo '</table>';
+			}
+
+		if (!empty($modSettings['karmadescmod']) && !empty($modSettings['karmalastchange']) && $context['show_karmastat'] && ($context['user']['is_admin'])==1)
+		{
+		echo '
+		<div class="title_barIC">
+			<h4 class="titlebg">
+				<span class="ie6_header floatleft"></span>
+					<a href="', $scripturl, '?action=viewkarma"><img class="icon" src="', $settings['images_url'], '/stats_boards.gif" alt="', $txt['karmaview'], '" /></a>
+				<span>', $modSettings['karmalastchangenum']>'1' ? $txt['karma_last_change1'].$modSettings['karmalastchangenum'].$txt['karma_last_change2'] : $txt['karma_last_change'], '</span>
+			</h4>
+		</div>
+			';
+                $alternate = true;
+
+               	echo '
+                <table class="table_grid" cellspacing="0" width="100%">
+
+                        <thead>
+                        <tr class="catbg">
+                                        <th scope="col" class="centertext first_th" width="14%">', $txt['karmawho'], '</th>
+                                        <th scope="col" class="centertext" width="14%">', $txt['karmawhos'],'</th>
+                                        <th scope="col" class="centertext" width="10%">', $txt['karmawhat'],'</th>
+                                        <th scope="col" class="centertext" width="31%">', $txt['karmadesc'],'</th>';
+	                                    if (!empty($modSettings['karmaurl'])) echo '<th scope="col" class="centertext" width="9%">', $txt['karmawhere'],'</th>';
+	                              echo '
+                                        <th scope="col" class="centertext last_th" width="22%">', $txt['karmatime'],'</th>
+
+                        </tr>
+                        </thead>';
+
+               	foreach ($context['karma_changes'] as $member)
+                {
+                	$member['action']=='+' ? $button='kdm_up.png' : $button='kdm_down.png';
+
+                    $stop = (int)$modSettings['karmadescfieldnum'];
+
+                    global $smcFunc;
+
+               	echo '
+		               	<tr class="windowbg', $alternate ? '2' : '', '">
+                                        <td width="14%" align="center"><a href="'. $scripturl . '?action=profile;u=' . $member['id_exec'] . '" title="' . $txt['karma_profile_of'] . ' ' . $member['executor'] . '">' . $member['executor'] . '</a>
+                                        <td width="14%" align="center"><a href="'. $scripturl . '?action=profile;u=' . $member['id_targ'] . '" title="' . $txt['karma_profile_of'] . ' ' . $member['target'] . '">' . $member['target'] . '</a>
+                                        <td width="10%" align="center">', !empty($modSettings['karmapictureinlog']) ? ' <img src="'.$settings['default_images_url'].'/'.$button.'" />' : $member['action'],'</td>
+                                        <td width="31%" align="center" title="'.$member['Description'].'">', strlen($member['Description'])>$stop ? $smcFunc['substr']($member['Description'],0,$stop).'...' : $member['Description'],'</td>';
+                                        if (!empty($modSettings['karmaurl'])) echo '<td width="9%" align="center">',$member['link']!='PM' ? '<a href="'. $scripturl . '?topic='. $member['link'].'" target="_blank">'.$txt['karmawhereurl'].'</a>' : $txt['karmawhereurl2'],'</td>'; else echo'';
+                                        echo ' <td width="22%" align="center">', $member['time'],'</td>
+                  		</tr>';
+				$alternate = !$alternate;
+				}
+				echo '</table>';
+			}
+]]></add>
+		</operation>
+
+		<operation>
+                        <search position="before"><![CDATA[<a href="' . $scripturl . '?action=stats">' . $txt['more_stats'] . '</a>' : '', '
+]]></search>
+				<add><![CDATA[
+';
+							if ((!empty($modSettings['karmadescmod'])) && (empty($modSettings['karmaisowner'])) && (!empty($modSettings['karmapermiss'])))
+								 {  if ($context['show_karmastat'])
+                echo '
+                        					  <a href="', $scripturl, '?action=viewkarma">'. $txt['statkarma'].'</a>',' ';
+ }
+							elseif ((!empty($modSettings['karmadescmod'])) && ($context['user']['is_admin']))
+								{ if ($context['show_karmastat'])
+		echo '
+								<a href="', $scripturl, '?action=viewkarma">'. $txt['statkarma'].'</a>',' ';
+}
+ echo'
+]]></add>
+		</operation>
+	</file>
+
+	
+	<file name="$themedir/Profile.template.php">
+		<operation>
+			<search position="before"><![CDATA[<a href="', $scripturl, '?action=profile;area=statistics;u=', $context['id_member'], '">', $txt['statPanel'], '</a>
+				</p>';
+]]></search>
+			<add><![CDATA[
+// If karma enabled show the members karma.
+
+        if (!empty($modSettings['karmadescmod']) && !empty($modSettings['karmalinks']))
+        {    if ($context['show_karmastat'])
+
+                                if (!empty($modSettings['karmaisowner']) && ($context['owner']==1)) echo '
+                                        <a href="'. $scripturl . '?action=ownkarma;u=' . $context['member']['id'] . '">'.$txt['who_change_my_karma'].'</a></br>
+                                        <a href="'. $scripturl . '?action=otherkarma;u=' . $context['member']['id'] . '">'.$txt['whom_i_change_karma'].'</a>
+                                ';
+                                elseif (empty($modSettings['karmaisowner'])) echo'
+                                        <a href="'. $scripturl . '?action=ownkarma;u=' . $context['member']['id'] . '">'.$txt['who_change_my_karma'].'</a></br>
+                                        <a href="'. $scripturl . '?action=otherkarma;u=' . $context['member']['id'] . '">'.$txt['whom_i_change_karma'].'</a>
+                                ';
+                                elseif ($context['user']['is_admin']) echo '
+                                        <a href="'. $scripturl . '?action=ownkarma;u=' . $context['member']['id'] . '">'.$txt['who_change_my_karma'].'</a></br>
+                                        <a href="'. $scripturl . '?action=otherkarma;u=' . $context['member']['id'] . '">'.$txt['whom_i_change_karma'].'</a>
+                                ';}
+
+
+        elseif ($modSettings['karmaMode'] == '2')
+        {
+        if (!empty($modSettings['karmadescmod']) && !empty($modSettings['karmalinks']))
+        {    if ($context['show_karmastat'])
+
+                                if (!empty($modSettings['karmaisowner']) && ($context['owner']==1)) echo '
+                                        <a href="'. $scripturl . '?action=ownkarma;u=' . $context['member']['id'] . '">'.$txt['who_change_my_karma'].'</a></br>
+                                        <a href="'. $scripturl . '?action=otherkarma;u=' . $context['member']['id'] . '">'.$txt['whom_i_change_karma'].'</a>
+                                ';
+                                elseif (empty($modSettings['karmaisowner'])) echo'
+                                        <a href="'. $scripturl . '?action=ownkarma;u=' . $context['member']['id'] . '">'.$txt['who_change_my_karma'].'</a></br>
+                                        <a href="'. $scripturl . '?action=otherkarma;u=' . $context['member']['id'] . '">'.$txt['whom_i_change_karma'].'</a>
+                                ';
+                                elseif ($context['user']['is_admin']) echo '
+                                        <a href="'. $scripturl . '?action=ownkarma;u=' . $context['member']['id'] . '">'.$txt['who_change_my_karma'].'</a></br>
+                                        <a href="'. $scripturl . '?action=otherkarma;u=' . $context['member']['id'] . '">'.$txt['whom_i_change_karma'].'</a>
+                                ';}
+        }
+]]></add>
+		</operation>
+		<operation>
+			<search position="before"><![CDATA[<label for="notify_send_body"><input type="checkbox" id="notify_send_body" name="notify_send_body"', !empty($context['member']['notify_send_body']) ? ' checked="checked"' : '', ' class="input_check" /> ', $txt['notify_send_body'], '</label><br />';
+]]></search>
+			<add><![CDATA[
+
+			//Karma Description Mod (Notification)
+								if (!empty($modSettings['karmadescmod']) && !empty($modSettings['karmanotifier']))
+									echo '									
+											<br><label for="enable_notify">', $txt['enable_notify'], '</label>
+												<select name="default_options[enable_notify]" id="none_notifier">
+													<option value="0"', empty($context['member']['options']['enable_notify']) ? ' selected="selected"' : '', '>', $txt['enable_notify_none'], '</option>
+													<option value="1"', !empty($context['member']['options']['enable_notify']) && $context['member']['options']['enable_notify'] == 1 ? ' selected="selected"' : '', '>', $txt['enable_notify_popup'], '</option>
+													<option value="2"', !empty($context['member']['options']['enable_notify']) && $context['member']['options']['enable_notify'] !=1 ? ' selected="selected"' : '', '>', $txt['enable_notify_pm'], '</option>
+												</select><br />';										
+]]></add>
+	</operation>
+	</file>
+	<file name="$boarddir/index.php">
+		<operation>
+			<search position="before"><![CDATA['modifykarma' => array('Karma.php', 'ModifyKarma'),
+]]></search>
+			<add><![CDATA[
+		'viewkarma' => array('Viewkarma_smf2.php', 'ViewKarma'),
+		'ownkarma' => array('Viewkarma_smf2.php', 'OwnKarma'),
+		'otherkarma' => array('Viewkarma_smf2.php', 'OtherKarma'),
+		'karmamessage' => array('Viewkarma_smf2.php', 'KarmaMessage'),
+]]></add>
+		</operation>
+	</file>
+</modification>
