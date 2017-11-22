@@ -5,7 +5,7 @@
     <name>Karma Description Mod</name>
     <version>2.8.0</version>
     <type>modification</type>
-    <install for="2.0">
+    <install for="2.0 - 2.0.99">
         <readme type="inline">Karma Description Mod. Don't forget to BACKUP, please.</readme>
         <database>db_change_2.0.php</database>
         <modification>Karma_Description_Mod_smf2.0_1.xml</modification>
@@ -16,8 +16,9 @@
         <modification type="file" format="xml">language_english.xml</modification>
         <require-dir name="Sources" destination="$boarddir"/>
         <require-dir name="Themes" destination="$boarddir"/>
+        <redirect url="?action=admin;area=featuresettings;sa=karma" timeout="5000"/>
     </install>
-    <uninstall for="2.0">
+    <uninstall for="2.0 - 2.0.99">
         <readme type="inline">Thank you for using Karma Description Mod.</readme>
         <modification reverse="true">Karma_Description_Mod_smf2.0_1.xml</modification>
         <modification reverse="true">Karma_Description_Mod_smf2.0_2.xml</modification>
