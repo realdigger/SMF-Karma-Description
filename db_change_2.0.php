@@ -22,29 +22,28 @@ if ((SMF == 'SSI') && !$user_info['is_admin']) {
 
 db_extend('packages');
 
-$result = $smcFunc['db_query']('', "SHOW COLUMNS FROM {db_prefix}log_karma LIKE 'description'");
+$result = $smcFunc['db_query']('', 'SHOW COLUMNS FROM {db_prefix}log_karma LIKE "description"');
 if ($smcFunc['db_fetch_assoc']($result) == 0) {
-    $smcFunc['db_query']('', "
+    $smcFunc['db_query']('', '
 		ALTER TABLE {db_prefix}log_karma
-		ADD	description text NOT NULL AFTER action");
+		ADD	description text NOT NULL DEFAULT "" AFTER action');
 }
 
-$result = $smcFunc['db_query']('', "SHOW COLUMNS FROM {db_prefix}log_karma LIKE 'link'");
+$result = $smcFunc['db_query']('', 'SHOW COLUMNS FROM {db_prefix}log_karma LIKE "link"');
 if ($smcFunc['db_fetch_assoc']($result) == 0) {
-    $smcFunc['db_query']('', "
+    $smcFunc['db_query']('', '
 		ALTER TABLE {db_prefix}log_karma
-		ADD	link text NOT NULL AFTER description");
+		ADD	link text NOT NULL DEFAULT "" AFTER description');
 }
 
-$result = $smcFunc['db_query']('', "SHOW COLUMNS FROM {db_prefix}log_karma LIKE 'is_read'");
+$result = $smcFunc['db_query']('', 'SHOW COLUMNS FROM {db_prefix}log_karma LIKE "is_read"');
 if ($smcFunc['db_fetch_assoc']($result) == 0) {
-    $smcFunc['db_query']('', "
+    $smcFunc['db_query']('', '
 		ALTER TABLE {db_prefix}log_karma
-		ADD	is_read smallint(1) NOT NULL AFTER link");
+		ADD	is_read smallint(1) NOT NULL DEFAULT 0 AFTER link');
 }
 
-
-$smcFunc['db_remove_index']("{db_prefix}log_karma", 'primary');
+$smcFunc['db_remove_index']('{db_prefix}log_karma', 'primary');
 
 $smcFunc['db_insert']('ignore',
     '{db_prefix}settings',
