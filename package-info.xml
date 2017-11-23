@@ -7,7 +7,7 @@
     <type>modification</type>
     <install for="2.0 - 2.0.99">
         <readme type="inline">Karma Description Mod. Don't forget to BACKUP, please.</readme>
-        <database>db_change_2.0.php</database>
+        <database>database.php</database>
         <modification>Karma_Description_Mod_smf2.0_1.xml</modification>
         <modification>Karma_Description_Mod_smf2.0_2.xml</modification>
         <modification type="file" format="xml">language_russian_cp1251.xml</modification>
