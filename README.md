@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.org/realdigger/SMF-Karma-Description.svg?branch=master)](https://travis-ci.org/realdigger/SMF-Karma-Description)
-# SMF Karma Description mod
+# SMF Karma Description mod [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text=SMF%20Karma%20Description.%20This%20mod%20allow%20to%20see,%20for%20what%20users%20changed%20Karma%20to%20other%20users.&url=https://github.com/realdigger/SMF-Karma-Description&hashtags=smf,karma-description-mod)
 * **Author:** Grek.Kamchatka
 * **License:** GPLv3
 * **Compatible with:** SMF 2.0
