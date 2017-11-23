@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/realdigger/SMF-Karma-Description.svg?branch=master)](https://travis-ci.org/realdigger/SMF-Karma-Description)
 # SMF Karma Description mod
 * **Author:** Grek.Kamchatka
 * **License:** GPLv3
@@ -22,4 +23,3 @@ Worked perfectly since 2005...
 
 ## Описание
 Позволяет вводить причину изменения кармы и предоставляет возможность просмотра логов изменений.
-
