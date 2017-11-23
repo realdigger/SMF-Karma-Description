@@ -3,7 +3,7 @@
 * **Author:** Grek.Kamchatka
 * **License:** GPLv3
 * **Compatible with:** SMF 2.0
-* **Languages:** English, Russian, Spanish
+* **Languages:** English, Russian, Spanish, Czech
 
 ## Installation  
 Download and install latest release tar.gz file from [releases page](https://github.com/realdigger/SMF-Karma-Description/releases).
