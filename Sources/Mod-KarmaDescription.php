@@ -2,14 +2,37 @@
 /**
  * @package SMF Karma Description
  * @author Grek.Kamchatka
- * @copyright 2005—2017 Grek.Kamchatka
+ * @copyright 2005вЂ”2017 Grek.Kamchatka
+ * @copyright 2017 digger <http://mysmf.ru>
  * @license GPLv3
- * @file Viewkarma_smf2.php
+ * @file Mod-KarmaDescription.php
  * @version 2.8
  */
 
 if (!defined('SMF')) {
     die('Hacking attempt...');
+}
+
+
+/**
+ * Load all needed hooks
+ */
+function loadKarmaDescriptionHooks()
+{
+    add_integration_function('integrate_menu_buttons', 'addKarmaDescriptionCopyright', false);
+    loadLanguage('KarmaDescription/KarmaDescription');
+}
+
+/**
+ * Add mod copyright to the forum credit's page
+ */
+function addKarmaDescriptionCopyright()
+{
+    global $context;
+
+    if ($context['current_action'] == 'credits') {
+        $context['copyrights']['mods'][] = '<a href="https://custom.simplemachines.org/mods/index.php?mod=192" target="_blank">Karma Description</a> &copy; 2005-2017, Grek.Kamchatka';
+    }
 }
 
 function ViewKarma()
@@ -278,7 +301,7 @@ function OtherKarma()
 
     $context['sort_direction'] = isset($_REQUEST['asc']) ? 'up' : 'down';
 
-    //Request['u'] должен быть указан.
+    //Request['u'] РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ СѓРєР°Р·Р°РЅ.
     $_REQUEST['u'] = isset($_REQUEST['u']) ? (int)$_REQUEST['u'] : 0;
     if (empty($_REQUEST['u'])) {
         fatal_lang_error('viewkarma_error', false);

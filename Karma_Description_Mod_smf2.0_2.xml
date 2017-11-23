@@ -656,10 +656,10 @@ function template_settings()
 			<search position="before"><![CDATA['modifykarma' => array('Karma.php', 'ModifyKarma'),
 ]]></search>
 			<add><![CDATA[
-		'viewkarma' => array('Viewkarma_smf2.php', 'ViewKarma'),
-		'ownkarma' => array('Viewkarma_smf2.php', 'OwnKarma'),
-		'otherkarma' => array('Viewkarma_smf2.php', 'OtherKarma'),
-		'karmamessage' => array('Viewkarma_smf2.php', 'KarmaMessage'),
+		'viewkarma' => array('Mod-KarmaDescription.php', 'ViewKarma'),
+		'ownkarma' => array('Mod-KarmaDescription.php', 'OwnKarma'),
+		'otherkarma' => array('Mod-KarmaDescription.php', 'OtherKarma'),
+		'karmamessage' => array('Mod-KarmaDescription.php', 'KarmaMessage'),
 ]]></add>
 		</operation>
 	</file>

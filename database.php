@@ -20,7 +20,7 @@ if (file_exists(dirname(__FILE__) . '/SSI.php') && !defined('SMF')) {
 }
 
 if ((SMF == 'SSI') && !$user_info['is_admin']) {
-    die('Admin permissions required.');
+    die('Admin privileges required.');
 }
 
 db_extend('packages');
