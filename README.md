@@ -1,9 +1,10 @@
 [![GitHub release](https://img.shields.io/github/release/realdigger/SMF-Karma-Description.svg)](https://github.com/realdigger/SMF-Karma-Description/releases)
 [![Build Status](https://travis-ci.org/realdigger/SMF-Karma-Description.svg?branch=master)](https://travis-ci.org/realdigger/SMF-Karma-Description)
-[![SMF](http://img.shields.io/badge/SMF-2.0-blue.svg?style==flat)](https://simplemachines.org)
+[![SMF](https://img.shields.io/badge/SMF-2.0-blue.svg?style==flat)](https://simplemachines.org)
 [![license](https://img.shields.io/github/license/realdigger/SMF-Karma-Description.svg)](https://github.com/realdigger/SMF-Karma-Description/blob/master/LICENSE.txt)
 # SMF Karma Description mod [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text=SMF%20Karma%20Description.%20This%20mod%20allow%20to%20see,%20for%20what%20users%20changed%20Karma%20to%20other%20users.&url=https://github.com/realdigger/SMF-Karma-Description&hashtags=smf,smf_karma_description_mod)
 * **Author:** Grek.Kamchatka
+* **Additional author:** [digger](https://mysmf.net)
 * **License:** GPLv3
 * **Compatible with:** SMF 2.0
 * **Languages:** English, Russian, Spanish, Czech
