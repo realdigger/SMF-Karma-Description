@@ -432,7 +432,9 @@ function KarmaMessage()
 
 
     //Avatar
-    if (!empty($user_profile[$_REQUEST['u']]['avatar']) && (substr($user_profile[$_REQUEST['u']]['avatar'], 0,
+    if (!empty($modSettings['custom_avatar_url']) && !empty($user_profile[$_REQUEST['u']]['filename'])) {
+        $context['avatar'] = '<img src="' . $modSettings['custom_avatar_url'] . '/' . $user_profile[$_REQUEST['u']]['filename'] . '" />';
+    } elseif (!empty($user_profile[$_REQUEST['u']]['avatar']) && (substr($user_profile[$_REQUEST['u']]['avatar'], 0,
                 7) != 'http://')) {
         $context['avatar'] = '<img src="' . $modSettings['avatar_url'] . '/' . $user_profile[$_REQUEST['u']]['avatar'] . '" />';
     } elseif (substr($user_profile[$_REQUEST['u']]['avatar'], 0, 7) == 'http://') {
