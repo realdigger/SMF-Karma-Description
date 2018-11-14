@@ -93,8 +93,12 @@ function ViewKarma()
         'url' => $scripturl . '?action=viewkarma',
         'name' => $txt['viewkarma_title']
     );
-    $context['page_index'] = constructPageIndex($scripturl . '?action=viewkarma', $_REQUEST['start'], $totalActions,
-        $modSettings['karmamaxmembers']);
+    $context['page_index'] = constructPageIndex(
+        $scripturl . '?action=viewkarma' . (isset($_GET['sort']) ? ';sort=' . $_GET['sort'] : '') . (isset($_GET['asc']) ? ';asc' : ''),
+        $_REQUEST['start'],
+        $totalActions,
+        $modSettings['karmamaxmembers']
+    );
     $context['start'] = $_REQUEST['start'];
     $context['totalActions'] = $totalActions;
 
